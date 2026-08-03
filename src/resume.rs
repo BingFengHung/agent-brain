@@ -1,8 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use colored::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use inquire::Select;
+use crate::injector::sync_project_context;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SessionHandoff {
@@ -15,78 +17,99 @@ pub struct SessionHandoff {
     pub unfinished_todos: Vec<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct SessionStore {
+    pub sessions: Vec<SessionHandoff>,
+}
+
 pub struct ResumeManager {
-    base_dir: PathBuf,
+    store_path: PathBuf,
 }
 
 impl ResumeManager {
     pub fn new() -> Result<Self> {
-        let home = dirs::home_dir().ok_or_else(|| anyhow!("Could not locate home directory"))?;
-        let base_dir = home.join(".agent-brain");
-
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir)?;
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+        let dir = home.join(".agent-brain");
+        if !dir.exists() {
+            fs::create_dir_all(&dir)?;
         }
-
-        Ok(Self { base_dir })
-    }
-
-    fn sessions_file_path(&self) -> PathBuf {
-        self.base_dir.join("sessions.json")
+        let store_path = dir.join("sessions.json");
+        Ok(Self { store_path })
     }
 
     pub fn load_sessions(&self) -> Result<Vec<SessionHandoff>> {
-        let path = self.sessions_file_path();
-        if !path.exists() {
+        if !self.store_path.exists() {
             return Ok(Vec::new());
         }
-
-        let content = fs::read_to_string(path)?;
-        let sessions: Vec<SessionHandoff> = serde_json::from_str(&content)?;
-        Ok(sessions)
+        let content = fs::read_to_string(&self.store_path)?;
+        let store: SessionStore = serde_json::from_str(&content).unwrap_or_default();
+        Ok(store.sessions)
     }
 
-    pub fn save_sessions(&self, sessions: &[SessionHandoff]) -> Result<()> {
-        let path = self.sessions_file_path();
-        let json = serde_json::to_string_pretty(sessions)?;
-        fs::write(path, json)?;
-        Ok(())
-    }
-
-    pub fn add_session(&self, session: SessionHandoff) -> Result<()> {
+    pub fn add_session(&self, handoff: SessionHandoff) -> Result<()> {
         let mut sessions = self.load_sessions()?;
-        sessions.retain(|s| s.id != session.id);
-        sessions.insert(0, session); // latest session on top
-        self.save_sessions(&sessions)?;
+        sessions.insert(0, handoff); // newest first
+        let store = SessionStore { sessions };
+        let content = serde_json::to_string_pretty(&store)?;
+        fs::write(&self.store_path, content)?;
         Ok(())
     }
 
     pub fn render_session_card(&self, s: &SessionHandoff) {
-        println!("{}", "─".repeat(65).dimmed());
-        println!(
-            "{} [{}] {} {}",
-            "📅".cyan(),
-            s.date.bold().yellow(),
-            "Project:".dimmed(),
-            s.project_name.bold().green()
-        );
-        println!("{} {}", "🎯 Goal:".bold().magenta(), s.goal);
-        if !s.files_modified.is_empty() {
-            println!("{} {}", "🛠️ Files:".bold().blue(), s.files_modified.join(", ").dimmed());
+        println!("{}", "─────────────────────────────────────────────────────────────".cyan());
+        println!("📅 [{}] Project: {}", s.date.bold().magenta(), s.project_name.bold().yellow());
+        println!("🎯 Goal: {}", s.goal.cyan());
+        println!("🛠️ Files: {}", if s.files_modified.is_empty() { "None".dimmed() } else { s.files_modified.join(", ").dimmed() });
+        println!("💡 Decisions:");
+        for d in &s.key_decisions {
+            println!("   • {}", d);
         }
-        if !s.key_decisions.is_empty() {
-            println!("{}", "💡 Decisions:".bold().yellow());
-            for d in &s.key_decisions {
-                println!("   • {}", d);
+        println!("⚠️ Unfinished TODOs:");
+        for t in &s.unfinished_todos {
+            println!("   • {}", t.yellow());
+        }
+        println!("{}", "─────────────────────────────────────────────────────────────".cyan());
+    }
+
+    pub fn select_and_resume_session(&self, is_interactive: bool) -> Result<()> {
+        let sessions = self.load_sessions()?;
+        if sessions.is_empty() {
+            println!("{}", "   (No session handoffs recorded yet. Create one via `agent-brain handoff --auto`)".dimmed());
+            return Ok(());
+        }
+
+        if is_interactive {
+            let options: Vec<String> = sessions
+                .iter()
+                .enumerate()
+                .map(|(i, s)| format!("{}. [{}] {} - {}", i + 1, s.date, s.project_name, s.goal))
+                .collect();
+
+            let ans = Select::new("📜 Select a past session snapshot to inspect & inject into AGENTS.md:", options).prompt()?;
+
+            if let Some(idx_str) = ans.split('.').next() {
+                if let Ok(idx) = idx_str.parse::<usize>() {
+                    if idx > 0 && idx <= sessions.len() {
+                        let selected = &sessions[idx - 1];
+                        println!();
+                        println!("{}", "✨ Loaded Selected Session Memory:".bold().green());
+                        self.render_session_card(selected);
+
+                        // Sync selected session into AGENTS.md
+                        sync_project_context()?;
+                        println!("{}", format!("🚀 Successfully restored session state [{}] into AGENTS.md!", selected.id).bold().magenta());
+                    }
+                }
+            }
+        } else {
+            // Non-interactive fallback: list recent 3 sessions
+            println!("{}", "📜 Past Session Handoff Snapshots (Non-interactive mode):".bold().magenta());
+            println!();
+            for s in sessions.iter().take(3) {
+                self.render_session_card(s);
             }
         }
-        if !s.unfinished_todos.is_empty() {
-            println!("{}", "⚠️ Unfinished TODOs:".bold().red());
-            for todo in &s.unfinished_todos {
-                println!("   • {}", todo);
-            }
-        }
-        println!("{}", "─".repeat(65).dimmed());
-        println!();
+
+        Ok(())
     }
 }

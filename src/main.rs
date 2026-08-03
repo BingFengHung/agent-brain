@@ -213,17 +213,8 @@ async fn main() -> Result<()> {
         }
         Commands::Resume => {
             let resume_mgr = ResumeManager::new()?;
-            let sessions = resume_mgr.load_sessions()?;
-            println!("{}", "📜 Smart Resume Timeline:".bold().magenta());
-            println!();
-
-            if sessions.is_empty() {
-                println!("{}", "   (No session handoffs recorded yet. Create one via `agent-brain handoff --auto`)".dimmed());
-            } else {
-                for s in &sessions {
-                    resume_mgr.render_session_card(s);
-                }
-            }
+            let is_interactive = std::io::stdin().is_terminal();
+            resume_mgr.select_and_resume_session(is_interactive)?;
         }
         Commands::Find { query } => {
             let q = query.join(" ");
