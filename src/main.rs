@@ -28,8 +28,12 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Auto-analyze current codebase (Cargo.toml, package.json, etc.) and auto-learn project rules
-    Learn,
+    /// Auto-analyze codebase or system history (use --global to scan shell & system history)
+    Learn {
+        /// Scan global shell history & system habits across all past sessions
+        #[arg(short, long)]
+        global: bool,
+    },
     /// Save a developer preference or coding convention rule permanently
     Remember {
         #[arg(required = true)]
@@ -60,8 +64,12 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Learn => {
-            auto_learn_codebase()?;
+        Commands::Learn { global } => {
+            if global {
+                learn::auto_learn_global_history()?;
+            } else {
+                auto_learn_codebase()?;
+            }
         }
         Commands::Remember { content } => {
             let rule = content.join(" ");
