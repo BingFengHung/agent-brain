@@ -12,6 +12,7 @@
 
 ## 🌟 Key Features
 
+* **🔄 Auto-Self Update (`agent-brain update`)**: Automatically checks GitHub Releases for new binary releases and performs an atomic in-place update of the CLI executable!
 * **🌐 Global System History Auto-Learning (`agent-brain learn --global`)**: Automatically scans your system shell history (PowerShell / Zsh / Bash) and past AI CLI sessions to learn your package managers, language preferences, and CLI habits without entering a project folder or typing a single word!
 * **🔍 Local Codebase Auto-Learning (`agent-brain learn`)**: Scans existing project manifest files (`package.json`, `Cargo.toml`, `tsconfig.json`, `pyproject.toml`, `.git`) to extract tech stack rules and code conventions.
 * **🧠 Persistent Long-Term Memory (`remember` & `sync`)**: Store your developer coding preferences and project rules. Auto-injects them into `AGENTS.md`, `.copilotrules`, and `.github/copilot-instructions.md` so Copilot CLI & AI tools recognize your rules from second 1.

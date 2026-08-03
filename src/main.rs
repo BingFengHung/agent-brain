@@ -4,6 +4,7 @@ mod learn;
 mod memory;
 mod resume;
 mod search;
+mod updater;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -14,6 +15,7 @@ use learn::auto_learn_codebase;
 use memory::MemoryManager;
 use resume::{ResumeManager, SessionHandoff};
 use search::search_brain;
+use updater::check_and_update;
 use inquire::Text;
 
 #[derive(Parser, Debug)]
@@ -30,6 +32,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Auto-check GitHub Releases and update agent-brain CLI to the latest version
+    Update,
     /// Auto-analyze codebase or system history (use --global to scan shell & system history)
     Learn {
         /// Scan global shell history & system habits across all past sessions
@@ -85,6 +89,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Update => {
+            check_and_update().await?;
+        }
         Commands::Learn { global } => {
             if global {
                 learn::auto_learn_global_history()?;
