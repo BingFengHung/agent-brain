@@ -1,4 +1,5 @@
 mod injector;
+mod learn;
 mod memory;
 mod resume;
 mod search;
@@ -7,10 +8,11 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
 use injector::sync_project_context;
+use learn::auto_learn_codebase;
 use memory::MemoryManager;
 use resume::{ResumeManager, SessionHandoff};
 use search::search_brain;
-use inquire::{Text, MultiSelect};
+use inquire::Text;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -26,6 +28,8 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Auto-analyze current codebase (Cargo.toml, package.json, etc.) and auto-learn project rules
+    Learn,
     /// Save a developer preference or coding convention rule permanently
     Remember {
         #[arg(required = true)]
@@ -38,7 +42,7 @@ enum Commands {
         #[arg(required = true)]
         id: usize,
     },
-    /// Inject & sync memory rules into local AGENTS.md and .copilotrules
+    /// Inject & sync memory rules into local AGENTS.md, .copilotrules, and .github/copilot-instructions.md
     Sync,
     /// Create a session handoff snapshot (Goal, Files, Decisions, Unfinished TODOs)
     Handoff,
@@ -56,6 +60,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Learn => {
+            auto_learn_codebase()?;
+        }
         Commands::Remember { content } => {
             let rule = content.join(" ");
             let memory_mgr = MemoryManager::new()?;
@@ -68,7 +75,7 @@ async fn main() -> Result<()> {
             let store = memory_mgr.load_store()?;
             println!("{}", "🧠 Long-Term Memory Rules:".bold().yellow());
             if store.preferences.is_empty() {
-                println!("{}", "   (No rules stored yet. Add one via `agent-brain remember <rule>`)".dimmed());
+                println!("{}", "   (No rules stored yet. Run `agent-brain learn` to auto-learn from codebase!)".dimmed());
             } else {
                 for p in &store.preferences {
                     println!("   [ID {}] {} ({})", p.id, p.content.green(), p.created_at.dimmed());

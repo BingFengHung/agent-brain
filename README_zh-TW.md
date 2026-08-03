@@ -12,6 +12,7 @@
 
 ## 🌟 核心特色
 
+* **🔍 自動汲取既有專案經驗 (`agent-brain learn`)**：全自動掃描你現有的專案檔（`package.json`, `Cargo.toml`, `tsconfig.json`, `pyproject.toml`, `.git`），一字不打即可自動分析出你當前的技術棧、框架規範與 Commit 風格！
 * **🧠 長期記憶與脈絡自動注入 (`remember` & `sync`)**：記錄個人開發習慣與專案架構規範，自動同步生成 `AGENTS.md` 與 `.copilotrules`，讓 Copilot CLI 第一秒就認識你。
 * **📜 智慧恢復時間軸 (`resume`)**：取代 Copilot 原生冰冷的 `/resume` 會話 ID，用結構化卡片清晰展示上次的 **完成目標**、**修改檔案**、**關鍵決策** 與 **遺留待辦**。
 * **🔍 歷史記憶與決策搜尋 (`find`)**：透過關鍵字瞬間搜尋過往所有會話紀錄與記憶。

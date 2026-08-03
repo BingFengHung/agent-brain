@@ -12,6 +12,7 @@
 
 ## 🌟 Key Features
 
+* **🔍 Auto-Learn from Existing Codebase (`agent-brain learn`)**: Automatically scans your existing project manifest files (`package.json`, `Cargo.toml`, `tsconfig.json`, `pyproject.toml`, `.git`) to extract your tech stack, framework rules, and code style without typing a single word!
 * **🧠 Persistent Long-Term Memory (`remember` & `sync`)**: Store your developer coding preferences, conventions, and project rules once. Auto-injects them into `AGENTS.md` and `.copilotrules` so Copilot CLI & AI tools recognize your rules from second 1.
 * **📜 Smart Resume Timeline (`resume`)**: Replaces vague native `/resume` session IDs with human-readable timeline cards displaying **Goal**, **Files Modified**, **Key Decisions**, and **Unfinished TODOs**.
 * **🔍 Semantic & Keyword Memory Search (`find`)**: Search past session handoffs and developer rules with a single command.
