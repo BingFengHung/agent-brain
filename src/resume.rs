@@ -42,15 +42,20 @@ impl ResumeManager {
             return Ok(Vec::new());
         }
         let content = fs::read_to_string(&self.store_path)?;
-        let store: SessionStore = serde_json::from_str(&content).unwrap_or_default();
-        Ok(store.sessions)
+        // Support both JSON Array format and SessionStore wrapper object format
+        if let Ok(vec) = serde_json::from_str::<Vec<SessionHandoff>>(&content) {
+            return Ok(vec);
+        }
+        if let Ok(store) = serde_json::from_str::<SessionStore>(&content) {
+            return Ok(store.sessions);
+        }
+        Ok(Vec::new())
     }
 
     pub fn add_session(&self, handoff: SessionHandoff) -> Result<()> {
         let mut sessions = self.load_sessions()?;
         sessions.insert(0, handoff); // newest first
-        let store = SessionStore { sessions };
-        let content = serde_json::to_string_pretty(&store)?;
+        let content = serde_json::to_string_pretty(&sessions)?;
         fs::write(&self.store_path, content)?;
         Ok(())
     }
@@ -102,8 +107,8 @@ impl ResumeManager {
                 }
             }
         } else {
-            // Non-interactive fallback: list recent 3 sessions
-            println!("{}", "📜 Past Session Handoff Snapshots (Non-interactive mode):".bold().magenta());
+            // Non-interactive fallback: list recent sessions
+            println!("{}", "📜 Past Session Handoff Snapshots:".bold().magenta());
             println!();
             for s in sessions.iter().take(3) {
                 self.render_session_card(s);
