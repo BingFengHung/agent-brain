@@ -43,7 +43,7 @@ pub async fn check_and_update() -> Result<()> {
 
     println!("{}", format!("🚀 New version v{} is available! Downloading update...", latest_tag).bold().green());
 
-    // Determine binary asset name for current OS
+    // Determine exact binary asset name for current OS
     let target_asset_name = if cfg!(target_os = "windows") {
         "agent-brain-windows-amd64.exe"
     } else if cfg!(target_os = "macos") {
@@ -55,7 +55,7 @@ pub async fn check_and_update() -> Result<()> {
     let asset = release
         .assets
         .iter()
-        .find(|a| a.name.contains(target_asset_name) || a.name.contains("agent-brain"))
+        .find(|a| a.name == target_asset_name || a.name.ends_with(target_asset_name))
         .ok_or_else(|| anyhow!("Could not find binary asset '{}' in release", target_asset_name))?;
 
     println!("  • Downloading asset: {}", asset.browser_download_url.dimmed());
