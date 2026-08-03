@@ -1,0 +1,82 @@
+name: Release & Cross-Platform Build
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Binary for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: agent-brain-windows-amd64.exe
+            asset_name: agent-brain-windows-amd64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: agent-brain-linux-amd64
+            asset_name: agent-brain-linux-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: agent-brain-macos-arm64
+            asset_name: agent-brain-macos-arm64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cargo Build Release
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename Binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: cp target/${{ matrix.target }}/release/agent-brain.exe target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Rename Binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: cp target/${{ matrix.target }}/release/agent-brain target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  release:
+    name: Auto Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "agent-brain v0.1.0 Release"
+          tag_name: "v0.1.0"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
