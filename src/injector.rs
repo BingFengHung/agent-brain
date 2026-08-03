@@ -11,6 +11,12 @@ pub fn sync_project_context() -> Result<()> {
     let cwd = env::current_dir()?;
     let agents_md_path = cwd.join("AGENTS.md");
     let copilot_rules_path = cwd.join(".copilotrules");
+    
+    let github_dir = cwd.join(".github");
+    if !github_dir.exists() {
+        let _ = fs::create_dir_all(&github_dir);
+    }
+    let copilot_instructions_path = github_dir.join("copilot-instructions.md");
 
     let mut rules_content = String::new();
     rules_content.push_str("# Project Context & Agent Rules\n\n");
@@ -33,10 +39,13 @@ pub fn sync_project_context() -> Result<()> {
     fs::write(&agents_md_path, &rules_content)?;
     // Write .copilotrules
     fs::write(&copilot_rules_path, &rules_content)?;
+    // Write .github/copilot-instructions.md (GitHub Copilot VS Code native format)
+    fs::write(&copilot_instructions_path, &rules_content)?;
 
     println!("{}", "✨ Successfully synced memory & rules into project root:".bold().green());
     println!("  📄 {}", agents_md_path.to_string_lossy().cyan());
     println!("  📄 {}", copilot_rules_path.to_string_lossy().cyan());
+    println!("  📄 {}", copilot_instructions_path.to_string_lossy().cyan());
 
     Ok(())
 }
