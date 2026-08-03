@@ -49,7 +49,23 @@ enum Commands {
     /// Inject & sync memory rules into local AGENTS.md, .copilotrules, and .github/copilot-instructions.md
     Sync,
     /// Create a session handoff snapshot (Goal, Files, Decisions, Unfinished TODOs)
-    Handoff,
+    Handoff {
+        /// Session main goal / accomplishment
+        #[arg(short, long)]
+        goal: Option<String>,
+        /// Files modified (comma separated)
+        #[arg(short, long)]
+        files: Option<String>,
+        /// Key decisions made (comma separated)
+        #[arg(short, long)]
+        decisions: Option<String>,
+        /// Unfinished TODOs (comma separated)
+        #[arg(short, long)]
+        todos: Option<String>,
+        /// Project name
+        #[arg(short, long)]
+        project: Option<String>,
+    },
     /// Display Smart Resume timeline cards of past sessions
     Resume,
     /// Search memory rules and past sessions by keyword
@@ -101,36 +117,53 @@ async fn main() -> Result<()> {
         Commands::Sync => {
             sync_project_context()?;
         }
-        Commands::Handoff => {
+        Commands::Handoff {
+            goal,
+            files,
+            decisions,
+            todos,
+            project,
+        } => {
             let memory_mgr = ResumeManager::new()?;
-            println!("{}", "📝 Creating End-of-Session Handoff Snapshot".bold().cyan());
 
-            let project_name = Text::new("Project Name:")
-                .with_initial_value("agent-brain")
-                .prompt()?;
+            // Non-interactive mode when arguments are provided
+            let project_name = if let Some(p) = project {
+                p
+            } else if goal.is_some() {
+                "current-project".to_string()
+            } else {
+                println!("{}", "📝 Creating End-of-Session Handoff Snapshot".bold().cyan());
+                Text::new("Project Name:")
+                    .with_initial_value("agent-brain")
+                    .prompt()?
+            };
 
-            let goal = Text::new("Session Main Goal / Accomplishment:").prompt()?;
+            let goal_str = if let Some(g) = goal {
+                g
+            } else {
+                Text::new("Session Main Goal / Accomplishment:").prompt()?
+            };
 
-            let files_str = Text::new("Files Modified (comma separated):").prompt()?;
-            let files_modified: Vec<String> = files_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
+            let files_modified: Vec<String> = if let Some(f) = files {
+                f.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            } else {
+                let files_str = Text::new("Files Modified (comma separated):").prompt()?;
+                files_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            };
 
-            let decisions_str = Text::new("Key Decisions Made (comma separated):").prompt()?;
-            let key_decisions: Vec<String> = decisions_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
+            let key_decisions: Vec<String> = if let Some(d) = decisions {
+                d.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            } else {
+                let decisions_str = Text::new("Key Decisions Made (comma separated):").prompt()?;
+                decisions_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            };
 
-            let todos_str = Text::new("Unfinished TODOs for Tomorrow (comma separated):").prompt()?;
-            let unfinished_todos: Vec<String> = todos_str
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
+            let unfinished_todos: Vec<String> = if let Some(t) = todos {
+                t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            } else {
+                let todos_str = Text::new("Unfinished TODOs for Tomorrow (comma separated):").prompt()?;
+                todos_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+            };
 
             let session_id = format!("session-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
             let date = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
@@ -139,7 +172,7 @@ async fn main() -> Result<()> {
                 id: session_id,
                 date,
                 project_name,
-                goal,
+                goal: goal_str,
                 files_modified,
                 key_decisions,
                 unfinished_todos,
