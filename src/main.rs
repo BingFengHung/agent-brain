@@ -82,8 +82,12 @@ enum Commands {
         #[arg(short, long)]
         project: Option<String>,
     },
-    /// Display Smart Resume timeline cards of past sessions
-    Resume,
+    /// Display Smart Resume timeline cards or restore by index (e.g. `! agent-brain resume 1`)
+    Resume {
+        /// Optional session index to select and restore (1-indexed)
+        #[arg(index = 1)]
+        index: Option<usize>,
+    },
     /// Search memory rules and past sessions by keyword
     Find {
         #[arg(required = true)]
@@ -211,10 +215,10 @@ async fn main() -> Result<()> {
                 println!("{}", "✨ Session Handoff Snapshot Saved Successfully!".bold().green());
             }
         }
-        Commands::Resume => {
+        Commands::Resume { index } => {
             let resume_mgr = ResumeManager::new()?;
             let is_interactive = std::io::stdin().is_terminal();
-            resume_mgr.select_and_resume_session(is_interactive)?;
+            resume_mgr.select_and_resume_session(is_interactive, index)?;
         }
         Commands::Find { query } => {
             let q = query.join(" ");

@@ -76,11 +76,29 @@ impl ResumeManager {
         println!("{}", "─────────────────────────────────────────────────────────────".cyan());
     }
 
-    pub fn select_and_resume_session(&self, is_interactive: bool) -> Result<()> {
+    pub fn select_and_resume_session(&self, is_interactive: bool, target_index: Option<usize>) -> Result<()> {
         let sessions = self.load_sessions()?;
         if sessions.is_empty() {
             println!("{}", "   (No session handoffs recorded yet. Create one via `agent-brain handoff --auto`)".dimmed());
             return Ok(());
+        }
+
+        // Direct index selection (e.g. `agent-brain resume 1`)
+        if let Some(idx) = target_index {
+            if idx > 0 && idx <= sessions.len() {
+                let selected = &sessions[idx - 1];
+                println!();
+                println!("{}", format!("✨ Restoring Selected Session #{} Memory:", idx).bold().green());
+                self.render_session_card(selected);
+
+                // Sync selected session into AGENTS.md
+                sync_project_context()?;
+                println!("{}", format!("🚀 Successfully restored session state [{}] into AGENTS.md!", selected.id).bold().magenta());
+                return Ok(());
+            } else {
+                println!("{}", format!("⚠️ Invalid session index {}. Total sessions available: {}", idx, sessions.len()).yellow());
+                return Ok(());
+            }
         }
 
         if is_interactive {
@@ -107,10 +125,11 @@ impl ResumeManager {
                 }
             }
         } else {
-            // Non-interactive fallback: list recent sessions
-            println!("{}", "📜 Past Session Handoff Snapshots:".bold().magenta());
+            // Non-interactive fallback: list recent sessions with clear numbers
+            println!("{}", "📜 Past Session Handoff Snapshots (Use `! agent-brain resume <number>` to load a specific session):".bold().magenta());
             println!();
-            for s in sessions.iter().take(3) {
+            for (i, s) in sessions.iter().enumerate().take(5) {
+                println!("{}", format!("👉 Session #{}: Type `! agent-brain resume {}` to restore this session", i + 1, i + 1).bold().cyan());
                 self.render_session_card(s);
             }
         }
