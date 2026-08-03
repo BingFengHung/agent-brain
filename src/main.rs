@@ -4,6 +4,7 @@ mod learn;
 mod memory;
 mod resume;
 mod search;
+mod status;
 mod updater;
 
 use anyhow::Result;
@@ -15,6 +16,7 @@ use learn::auto_learn_codebase;
 use memory::MemoryManager;
 use resume::{ResumeManager, SessionHandoff};
 use search::search_brain;
+use status::render_brain_status;
 use updater::check_and_update;
 use inquire::Text;
 
@@ -32,6 +34,10 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Display full Memory Dashboard (stored rules, project sync status & session stats)
+    Status,
+    /// Alias for Status: Inspect stored memory and project context status
+    Inspect,
     /// Auto-check GitHub Releases and update agent-brain CLI to the latest version
     Update,
     /// Auto-analyze codebase or system history (use --global to scan shell & system history)
@@ -89,6 +95,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Status | Commands::Inspect => {
+            render_brain_status()?;
+        }
         Commands::Update => {
             check_and_update().await?;
         }
