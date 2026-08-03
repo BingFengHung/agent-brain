@@ -1,3 +1,4 @@
+mod auto_handoff;
 mod injector;
 mod learn;
 mod memory;
@@ -7,6 +8,7 @@ mod search;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
+use auto_handoff::generate_auto_handoff;
 use injector::sync_project_context;
 use learn::auto_learn_codebase;
 use memory::MemoryManager;
@@ -48,8 +50,11 @@ enum Commands {
     },
     /// Inject & sync memory rules into local AGENTS.md, .copilotrules, and .github/copilot-instructions.md
     Sync,
-    /// Create a session handoff snapshot (Goal, Files, Decisions, Unfinished TODOs)
+    /// Create a session handoff snapshot (use --auto for zero manual typing auto generation)
     Handoff {
+        /// Auto generate handoff snapshot using Git diff & session metadata (Zero manual typing)
+        #[arg(short, long)]
+        auto: bool,
         /// Session main goal / accomplishment
         #[arg(short, long)]
         goal: Option<String>,
@@ -118,69 +123,74 @@ async fn main() -> Result<()> {
             sync_project_context()?;
         }
         Commands::Handoff {
+            auto,
             goal,
             files,
             decisions,
             todos,
             project,
         } => {
-            let memory_mgr = ResumeManager::new()?;
-
-            // Non-interactive mode when arguments are provided
-            let project_name = if let Some(p) = project {
-                p
-            } else if goal.is_some() {
-                "current-project".to_string()
+            if auto {
+                generate_auto_handoff()?;
             } else {
-                println!("{}", "📝 Creating End-of-Session Handoff Snapshot".bold().cyan());
-                Text::new("Project Name:")
-                    .with_initial_value("agent-brain")
-                    .prompt()?
-            };
+                let memory_mgr = ResumeManager::new()?;
 
-            let goal_str = if let Some(g) = goal {
-                g
-            } else {
-                Text::new("Session Main Goal / Accomplishment:").prompt()?
-            };
+                // Non-interactive mode when arguments are provided
+                let project_name = if let Some(p) = project {
+                    p
+                } else if goal.is_some() {
+                    "current-project".to_string()
+                } else {
+                    println!("{}", "📝 Creating End-of-Session Handoff Snapshot".bold().cyan());
+                    Text::new("Project Name:")
+                        .with_initial_value("agent-brain")
+                        .prompt()?
+                };
 
-            let files_modified: Vec<String> = if let Some(f) = files {
-                f.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            } else {
-                let files_str = Text::new("Files Modified (comma separated):").prompt()?;
-                files_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            };
+                let goal_str = if let Some(g) = goal {
+                    g
+                } else {
+                    Text::new("Session Main Goal / Accomplishment:").prompt()?
+                };
 
-            let key_decisions: Vec<String> = if let Some(d) = decisions {
-                d.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            } else {
-                let decisions_str = Text::new("Key Decisions Made (comma separated):").prompt()?;
-                decisions_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            };
+                let files_modified: Vec<String> = if let Some(f) = files {
+                    f.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                } else {
+                    let files_str = Text::new("Files Modified (comma separated):").prompt()?;
+                    files_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                };
 
-            let unfinished_todos: Vec<String> = if let Some(t) = todos {
-                t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            } else {
-                let todos_str = Text::new("Unfinished TODOs for Tomorrow (comma separated):").prompt()?;
-                todos_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-            };
+                let key_decisions: Vec<String> = if let Some(d) = decisions {
+                    d.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                } else {
+                    let decisions_str = Text::new("Key Decisions Made (comma separated):").prompt()?;
+                    decisions_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                };
 
-            let session_id = format!("session-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
-            let date = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+                let unfinished_todos: Vec<String> = if let Some(t) = todos {
+                    t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                } else {
+                    let todos_str = Text::new("Unfinished TODOs for Tomorrow (comma separated):").prompt()?;
+                    todos_str.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                };
 
-            let handoff = SessionHandoff {
-                id: session_id,
-                date,
-                project_name,
-                goal: goal_str,
-                files_modified,
-                key_decisions,
-                unfinished_todos,
-            };
+                let session_id = format!("session-{}", chrono::Local::now().format("%Y%m%d-%H%M%S"));
+                let date = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
 
-            memory_mgr.add_session(handoff)?;
-            println!();
-            println!("{}", "✨ Session Handoff Snapshot Saved Successfully!".bold().green());
+                let handoff = SessionHandoff {
+                    id: session_id,
+                    date,
+                    project_name,
+                    goal: goal_str,
+                    files_modified,
+                    key_decisions,
+                    unfinished_todos,
+                };
+
+                memory_mgr.add_session(handoff)?;
+                println!();
+                println!("{}", "✨ Session Handoff Snapshot Saved Successfully!".bold().green());
+            }
         }
         Commands::Resume => {
             let resume_mgr = ResumeManager::new()?;
@@ -189,7 +199,7 @@ async fn main() -> Result<()> {
             println!();
 
             if sessions.is_empty() {
-                println!("{}", "   (No session handoffs recorded yet. Create one via `agent-brain handoff`)".dimmed());
+                println!("{}", "   (No session handoffs recorded yet. Create one via `agent-brain handoff --auto`)".dimmed());
             } else {
                 for s in &sessions {
                     resume_mgr.render_session_card(s);

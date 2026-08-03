@@ -17,7 +17,7 @@
 * **🧠 長期記憶與脈絡自動注入 (`remember` & `sync`)**：記錄個人開發習慣與專案架構規範，自動同步生成 `AGENTS.md`、`.copilotrules` 與 `.github/copilot-instructions.md`，讓 Copilot CLI 與 VS Code 第一秒就認識您。
 * **📜 智慧恢復時間軸 (`resume`)**：取代 Copilot 原生冰冷的 `/resume` 會話 ID，用結構化卡片清晰展示上次的 **完成目標**、**修改檔案**、**關鍵決策** 與 **遺留待辦**。
 * **🔍 歷史記憶與決策搜尋 (`find`)**：透過關鍵字瞬間搜尋過往所有會話紀錄與記憶。
-* **📝 每日工作交接快照 (`handoff`)**：下班前一鍵記錄今天進度，明天開啟 Seamless 無縫接續。
+* **📝 全自動零打字工作交接 (`handoff --auto`)**: 自動讀取 Git 修改檔案、Commit 記錄與環境脈絡，直接在 `agy` 或 Copilot CLI 內部一秒完成下班進度交接快照，一字都不需要手打！
 
 ---
 

@@ -17,7 +17,7 @@
 * **🧠 Persistent Long-Term Memory (`remember` & `sync`)**: Store your developer coding preferences and project rules. Auto-injects them into `AGENTS.md`, `.copilotrules`, and `.github/copilot-instructions.md` so Copilot CLI & AI tools recognize your rules from second 1.
 * **📜 Smart Resume Timeline (`resume`)**: Replaces vague native `/resume` session IDs with human-readable timeline cards displaying **Goal**, **Files Modified**, **Key Decisions**, and **Unfinished TODOs**.
 * **🔍 Semantic & Keyword Memory Search (`find`)**: Search past session handoffs and developer rules with a single command.
-* **📝 End-of-Session Handoff (`handoff`)**: Save progress snapshots at the end of the day for seamless continuation tomorrow.
+* **📝 Autonomous Zero-Typing Handoff (`handoff --auto`)**: Automatically analyzes Git status, modified files, and session metadata to create instant end-of-day progress snapshots—100% inside `agy` or Copilot CLI without typing a single word!
 
 ---
 
