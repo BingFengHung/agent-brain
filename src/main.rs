@@ -21,6 +21,7 @@ use search::search_brain;
 use status::render_brain_status;
 use updater::check_and_update;
 use inquire::Text;
+use std::io::IsTerminal;
 
 #[derive(Parser, Debug)]
 #[command(
