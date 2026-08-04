@@ -1,4 +1,5 @@
 mod auto_handoff;
+mod hook;
 mod injector;
 mod learn;
 mod memory;
@@ -11,6 +12,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
 use auto_handoff::generate_auto_handoff;
+use hook::{install_git_hook, uninstall_git_hook};
 use injector::sync_project_context;
 use learn::auto_learn_codebase;
 use memory::MemoryManager;
@@ -19,13 +21,12 @@ use search::search_brain;
 use status::render_brain_status;
 use updater::check_and_update;
 use inquire::Text;
-use std::io::IsTerminal;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "agent-brain",
     author = "BingFengHung <your.email@example.com>",
-    version = "0.1.3",
+    version = "0.1.7",
     about = "Long-Term Memory & Smart Resume Gateway Agent CLI for Copilot CLI, agy & AI Agents."
 )]
 struct Cli {
@@ -35,6 +36,15 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Manage Git hooks (install or uninstall post-commit auto-handoff trigger)
+    Hook {
+        /// Install post-commit hook
+        #[arg(short, long)]
+        install: bool,
+        /// Uninstall post-commit hook
+        #[arg(short, long)]
+        uninstall: bool,
+    },
     /// Display full Memory Dashboard (stored rules, project sync status & session stats)
     Status,
     /// Alias for Status: Inspect stored memory and project context status
@@ -100,6 +110,16 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Hook { install, uninstall } => {
+            if uninstall {
+                uninstall_git_hook()?;
+            } else if install {
+                install_git_hook()?;
+            } else {
+                // Default to install if no flag provided
+                install_git_hook()?;
+            }
+        }
         Commands::Status | Commands::Inspect => {
             render_brain_status()?;
         }

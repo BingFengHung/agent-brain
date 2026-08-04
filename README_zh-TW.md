@@ -12,6 +12,7 @@
 
 ## 🌟 核心特色
 
+* **⚓ Git Hook 自動觸發連動 (`agent-brain hook`)**：一鍵安裝 Git post-commit 鉤子，今後每次 `git commit` 背景全自動觸發下班交接快照，完全無需打任何命令！
 * **🔄 原生自我線上自動更新 (`agent-brain update`)**：全自動檢測 GitHub Releases 是否有新版本，並以原子操作自動下載並覆蓋升級本機 CLI 執行檔！
 * **🌐 系統全域歷程自動學習 (`agent-brain learn --global`)**：全自動掃描您本機的 Shell 歷史紀錄 (PowerShell / Zsh / Bash) 與過往 AI 會話，無需進入特定專案或打任何字，自動學習您的套件管理工具、語言偏好與 CLI 習慣！
 * **🔍 自動汲取既有專案經驗 (`agent-brain learn`)**：掃描您現有的專案檔（`package.json`, `Cargo.toml`, `tsconfig.json`, `pyproject.toml`, `.git`），自動分析出您當前專案的技術棧與框架規範！

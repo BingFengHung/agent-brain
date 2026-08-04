@@ -1,6 +1,6 @@
 [package]
 name = "agent-brain"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["BingFengHung <your.email@example.com>"]
 description = "Long-Term Memory & Smart Resume Gateway Agent CLI for Copilot CLI, agy & AI Agents."
